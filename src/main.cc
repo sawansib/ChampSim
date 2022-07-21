@@ -1,12 +1,13 @@
-#include <getopt.h>
 #include <iostream>
 #include <signal.h>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "cache.h"
 #include "champsim.h"
 #include "champsim_constants.h"
+#include "cli.h"
 #include "dram_controller.h"
 #include "ooo_cpu.h"
 #include "operable.h"
@@ -27,7 +28,7 @@ struct phase_info {
 };
 
 int champsim_main(std::vector<std::reference_wrapper<O3_CPU>>& cpus, std::vector<std::reference_wrapper<champsim::operable>>& operables,
-                  std::vector<phase_info>& phases, bool knob_cloudsuite, std::vector<std::string> trace_names);
+                  std::vector<phase_info>& phases, bool knob_cloudsuite, std::vector<std::string_view> trace_names);
 
 void signal_handler(int signal)
 {
@@ -45,42 +46,10 @@ int main(int argc, char** argv)
   sigaction(SIGINT, &sigIntHandler, NULL);
 
   // initialize knobs
-  uint8_t knob_cloudsuite = 0;
-  uint64_t warmup_instructions = 1000000, simulation_instructions = 10000000;
+  auto [knob_cloudsuite, knob_hide_heartbeat, warmup_instructions, simulation_instructions, trace_names] = parse_args(argc, argv);
 
-  // check to see if knobs changed using getopt_long()
-  int traces_encountered = 0;
-  static struct option long_options[] = {{"warmup_instructions", required_argument, 0, 'w'},
-                                         {"simulation_instructions", required_argument, 0, 'i'},
-                                         {"hide_heartbeat", no_argument, 0, 'h'},
-                                         {"cloudsuite", no_argument, 0, 'c'},
-                                         {"traces", no_argument, &traces_encountered, 1},
-                                         {0, 0, 0, 0}};
-
-  int c;
-  while ((c = getopt_long_only(argc, argv, "w:i:hc", long_options, NULL)) != -1 && !traces_encountered) {
-    switch (c) {
-    case 'w':
-      warmup_instructions = atol(optarg);
-      break;
-    case 'i':
-      simulation_instructions = atol(optarg);
-      break;
-    case 'h':
-      for (O3_CPU& cpu : ooo_cpu)
-        cpu.show_heartbeat = false;
-      break;
-    case 'c':
-      knob_cloudsuite = 1;
-      break;
-    case 0:
-      break;
-    default:
-      abort();
-    }
-  }
-
-  std::vector<std::string> trace_names{std::next(argv, optind), std::next(argv, argc)};
+  for (O3_CPU& cpu : ooo_cpu)
+    cpu.show_heartbeat = !knob_hide_heartbeat;
 
   std::vector<phase_info> phases{{phase_info{"Warmup", true, warmup_instructions}, phase_info{"Simulation", false, simulation_instructions}}};
 

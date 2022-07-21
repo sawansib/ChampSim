@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <deque>
 #include <memory>
-#include <string>
+#include <string_view>
 #include <variant>
 
 #ifdef __GNUG__
@@ -18,15 +18,15 @@ void pclose_file(FILE* f);
 class tracereader
 {
 public:
-  const std::string trace_string;
-  tracereader(uint8_t cpu, std::string _ts) : trace_string(_ts), cpu(cpu) {}
+  const std::string_view trace_string;
+  tracereader(uint8_t cpu, std::string_view _ts) : trace_string(_ts), cpu(cpu) {}
   virtual ~tracereader() = default;
 
   virtual ooo_model_instr operator()() = 0;
   bool eof() const;
 
 protected:
-  static FILE* get_fptr(std::string fname);
+  static FILE* get_fptr(std::string_view fname);
 
   std::unique_ptr<FILE, decltype(&detail::pclose_file)> fp{get_fptr(trace_string), &detail::pclose_file};
 #ifdef __GNUG__
@@ -47,4 +47,4 @@ protected:
   ooo_model_instr impl_get();
 };
 
-std::unique_ptr<tracereader> get_tracereader(std::string fname, uint8_t cpu, bool is_cloudsuite);
+std::unique_ptr<tracereader> get_tracereader(std::string_view fname, uint8_t cpu, bool is_cloudsuite);

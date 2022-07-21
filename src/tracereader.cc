@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cstring>
-#include <string>
 
 #ifdef __GNUG__
 #include <iostream>
@@ -10,7 +9,7 @@
 
 void detail::pclose_file(FILE* f) { pclose(f); }
 
-FILE* tracereader::get_fptr(std::string fname)
+FILE* tracereader::get_fptr(std::string_view fname)
 {
   std::string cmd_fmtstr = "%1$s %2$s";
   if (fname.substr(0, 4) == "http")
@@ -18,7 +17,7 @@ FILE* tracereader::get_fptr(std::string fname)
 
   std::string decomp_program = "cat";
   if (fname.back() == 'z') {
-    std::string last_dot = fname.substr(fname.find_last_of("."));
+    auto last_dot = fname.substr(fname.find_last_of("."));
     if (last_dot[1] == 'g') // gzip format
       decomp_program = "gzip -dc";
     else if (last_dot[1] == 'x') // xz
@@ -26,7 +25,7 @@ FILE* tracereader::get_fptr(std::string fname)
   }
 
   char gunzip_command[4096];
-  sprintf(gunzip_command, cmd_fmtstr.c_str(), decomp_program.c_str(), fname.c_str());
+  sprintf(gunzip_command, cmd_fmtstr.c_str(), decomp_program.c_str(), fname.data());
   return popen(gunzip_command, "r");
 }
 
@@ -82,7 +81,7 @@ public:
   ooo_model_instr operator()() { return impl_get<T>(); }
 };
 
-std::unique_ptr<tracereader> get_tracereader(std::string fname, uint8_t cpu, bool is_cloudsuite)
+std::unique_ptr<tracereader> get_tracereader(std::string_view fname, uint8_t cpu, bool is_cloudsuite)
 {
   if (is_cloudsuite)
     return std::make_unique<bulk_tracereader<cloudsuite_instr>>(cpu, fname);
