@@ -91,6 +91,11 @@ std::pair<uint64_t, uint8_t> O3_CPU::btb_prediction(uint64_t ip)
 
 void O3_CPU::update_btb(uint64_t ip, uint64_t branch_target, uint8_t taken, uint8_t branch_type)
 {
+  //std::cout << __func__ << " ip: " << std::hex << ip
+  // << " type " << std::dec << int(branch_type)
+  // << " taken? " << int(taken) 
+  //<< std::endl;
+
   // add something to the RAS
   if (branch_type == BRANCH_DIRECT_CALL || branch_type == BRANCH_INDIRECT_CALL) {
     RAS[this].push_back(ip);
@@ -130,12 +135,7 @@ void O3_CPU::update_btb(uint64_t ip, uint64_t branch_target, uint8_t taken, uint
     type = ::branch_info::CONDITIONAL;
 
   auto opt_entry = ::BTB.at(this).check_hit({ip, branch_target, type});
-  
-  if (taken) {
-    if (opt_entry->type == ::branch_info::CONDITIONAL && type == ::branch_info::ALWAYS_TAKEN) {
-      type = ::branch_info::CONDITIONAL;
-    }
-  }
+
   
   if (opt_entry.has_value()) {
     opt_entry->type = type;
@@ -143,5 +143,6 @@ void O3_CPU::update_btb(uint64_t ip, uint64_t branch_target, uint8_t taken, uint
       opt_entry->target = branch_target;
   }
 
+  //std::cout << "Updating branch ip: " << std::hex << ip << " with type: " << std::dec << int(type) << std::endl;
   ::BTB.at(this).fill(opt_entry.value_or(::btb_entry_t{ip, branch_target, type}));
 }
